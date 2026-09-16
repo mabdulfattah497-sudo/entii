@@ -1,6 +1,8 @@
+// ==========================================
 // SUPABASE CONFIGURATION
+// ==========================================
 const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY"; // Replace with your anon key if needed
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -8,15 +10,15 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let allEvents = [];
 let currentEventGuests = [];
 
-// INITIALIZATION
+// ==========================================
+// INITIALIZATION & AUTHENTICATION
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
   setupEventListeners();
 });
 
-// AUTHENTICATION MANAGEMENT
 function initAuth() {
-  const session = supabaseClient.auth.getSession();
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session) {
       document.getElementById('auth-overlay')?.classList.add('hidden');
@@ -27,81 +29,114 @@ function initAuth() {
   });
 }
 
-document.getElementById('auth-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  const btn = document.getElementById('auth-btn');
+function setupEventListeners() {
+  // Authentication Form
+  document.getElementById('auth-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const btn = document.getElementById('auth-btn');
 
-  btn.disabled = true;
-  btn.textContent = 'Signing in...';
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
 
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    alert('Authentication error: ' + error.message);
+    if (error) {
+      alert('Authentication error: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = 'Sign In to Dashboard';
+    }
+  });
+
+  // Logout Button
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+  });
+
+  // Toggle Price Input Based on Event Type
+  document.getElementById('event-type')?.addEventListener('change', (e) => {
+    const priceContainer = document.getElementById('price-container');
+    if (e.target.value === 'paid') {
+      priceContainer?.classList.remove('hidden');
+    } else {
+      priceContainer?.classList.add('hidden');
+    }
+  });
+
+  // Create Event Form Submission
+  document.getElementById('create-event-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('create-event-btn');
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    const eventData = {
+      user_id: user.id,
+      name: document.getElementById('event-name').value,
+      slug: document.getElementById('event-slug').value,
+      date: document.getElementById('event-date').value,
+      time: document.getElementById('event-time').value,
+      venue: document.getElementById('event-venue').value,
+      city: document.getElementById('event-city').value,
+      type: document.getElementById('event-type').value,
+      capacity: parseInt(document.getElementById('event-capacity').value) || 100,
+      price: document.getElementById('event-type').value === 'paid' 
+        ? parseFloat(document.getElementById('event-price').value) || 0 
+        : 0,
+      subaccount_code: document.getElementById('event-subaccount')?.value || null
+    };
+
+    const { error } = await supabaseClient.from('events').insert([eventData]);
+
+    if (error) {
+      alert('Error creating event: ' + error.message);
+    } else {
+      document.getElementById('create-event-form').reset();
+      document.getElementById('price-container')?.classList.add('hidden');
+      loadOrganizerData();
+    }
+
     btn.disabled = false;
-    btn.textContent = 'Sign In to Dashboard';
-  }
-});
+    btn.textContent = 'Publish Event';
+  });
 
-document.getElementById('logout-btn')?.addEventListener('click', async () => {
-  await supabaseClient.auth.signOut();
-  window.location.reload();
-});
+  // Search Events Input
+  document.getElementById('search-events-input')?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const filtered = allEvents.filter(evt => evt.name.toLowerCase().includes(query));
+    renderEventsTable(filtered);
+  });
 
-// EVENT FORM LOGIC
-document.getElementById('event-type')?.addEventListener('change', (e) => {
-  const priceContainer = document.getElementById('price-container');
-  if (e.target.value === 'paid') {
-    priceContainer?.classList.remove('hidden');
-  } else {
-    priceContainer?.classList.add('hidden');
-  }
-});
+  // Refresh Events Button
+  document.getElementById('refresh-events-btn')?.addEventListener('click', loadOrganizerData);
 
-document.getElementById('create-event-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('create-event-btn');
-  btn.disabled = true;
-  btn.textContent = 'Publishing...';
+  // Search Guests inside Guest Modal
+  document.getElementById('search-guests-input')?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const filtered = currentEventGuests.filter(g => 
+      (g.name && g.name.toLowerCase().includes(query)) ||
+      (g.full_name && g.full_name.toLowerCase().includes(query)) ||
+      (g.email && g.email.toLowerCase().includes(query))
+    );
+    renderGuestList(filtered);
+  });
 
-  const user = (await supabaseClient.auth.getUser()).data.user;
+  // Close Guest Modal
+  document.getElementById('close-guest-modal')?.addEventListener('click', () => {
+    document.getElementById('guest-modal')?.classList.add('hidden');
+  });
+}
 
-  const eventData = {
-    user_id: user.id,
-    name: document.getElementById('event-name').value,
-    slug: document.getElementById('event-slug').value,
-    date: document.getElementById('event-date').value,
-    time: document.getElementById('event-time').value,
-    venue: document.getElementById('event-venue').value,
-    city: document.getElementById('event-city').value,
-    type: document.getElementById('event-type').value,
-    capacity: parseInt(document.getElementById('event-capacity').value) || 100,
-    price: document.getElementById('event-type').value === 'paid' 
-      ? parseFloat(document.getElementById('event-price').value) || 0 
-      : 0,
-    subaccount_code: document.getElementById('event-subaccount')?.value || null
-  };
-
-  const { error } = await supabaseClient.from('events').insert([eventData]);
-
-  if (error) {
-    alert('Error creating event: ' + error.message);
-  } else {
-    document.getElementById('create-event-form').reset();
-    document.getElementById('price-container')?.classList.add('hidden');
-    loadOrganizerData();
-  }
-
-  btn.disabled = false;
-  btn.textContent = 'Publish Event';
-});
-
+// ==========================================
 // DATA FETCHING & EVENT TABLE RENDER
+// ==========================================
 async function loadOrganizerData() {
   try {
-    const user = (await supabaseClient.auth.getUser()).data.user;
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
     // Fetch Events with count of registered guests
@@ -114,7 +149,7 @@ async function loadOrganizerData() {
     if (eventsErr) throw eventsErr;
     allEvents = events || [];
 
-    // Fetch Total Analytics
+    // Fetch Total Dashboard Analytics
     const { count: totalTickets } = await supabaseClient.from('guests').select('*', { count: 'exact', head: true });
     const { count: totalCheckedIn } = await supabaseClient.from('guests').select('*', { count: 'exact', head: true }).eq('checked_in', true);
 
@@ -145,12 +180,12 @@ function renderEventsTable(events) {
     const tr = document.createElement('tr');
     tr.className = "hover:bg-brand-surface/50 transition-colors border-b border-brand-border";
 
-    // FIXED COLUMN ALIGNMENT:
-    // 1. Event Title
-    // 2. Type / Price
-    // 3. Date
-    // 4. Capacity (Registered / Capacity)
-    // 5. Actions (Guests | Copy Link | Delete)
+    // Strictly mapped to standard headers:
+    // Column 1: Event Name
+    // Column 2: Type / Price
+    // Column 3: Date
+    // Column 4: Registered / Capacity
+    // Column 5: Action Buttons (Guests | Copy Link | Delete)
     tr.innerHTML = `
       <td class="py-3.5 px-4 font-bold text-white">${event.name}</td>
       <td class="py-3.5 px-4 text-gray-300">${priceDisplay}</td>
@@ -172,16 +207,9 @@ function renderEventsTable(events) {
   });
 }
 
-// EVENT SEARCH FILTER
-document.getElementById('search-events-input')?.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  const filtered = allEvents.filter(evt => evt.name.toLowerCase().includes(query));
-  renderEventsTable(filtered);
-});
-
-document.getElementById('refresh-events-btn')?.addEventListener('click', loadOrganizerData);
-
+// ==========================================
 // GUEST SEARCH MODAL & MANUAL CHECK-IN
+// ==========================================
 async function openGuestModal(eventId, eventName) {
   const modal = document.getElementById('guest-modal');
   const title = document.getElementById('modal-event-title');
@@ -189,8 +217,8 @@ async function openGuestModal(eventId, eventName) {
 
   if (!modal) return;
 
-  title.textContent = `Guests: ${eventName}`;
-  tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-400">Loading guests...</td></tr>`;
+  if (title) title.textContent = `Guests: ${eventName}`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-400">Loading guests...</td></tr>`;
   modal.classList.remove('hidden');
 
   try {
@@ -205,7 +233,7 @@ async function openGuestModal(eventId, eventName) {
     currentEventGuests = guests || [];
     renderGuestList(currentEventGuests);
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-red-400">Failed to load guest list.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-red-400">Failed to load guest list.</td></tr>`;
   }
 }
 
@@ -242,18 +270,6 @@ function renderGuestList(guests) {
   });
 }
 
-// SEARCH PERSON BY NAME OR EMAIL WITHIN AN EVENT
-document.getElementById('search-guests-input')?.addEventListener('input', (e) => {
-  const query = e.target.value.toLowerCase().trim();
-  const filtered = currentEventGuests.filter(g => 
-    (g.name && g.name.toLowerCase().includes(query)) ||
-    (g.full_name && g.full_name.toLowerCase().includes(query)) ||
-    (g.email && g.email.toLowerCase().includes(query))
-  );
-  renderGuestList(filtered);
-});
-
-// MANUAL CHECK-IN ACTION
 async function manualCheckIn(guestId) {
   try {
     const { error } = await supabaseClient
@@ -272,7 +288,9 @@ async function manualCheckIn(guestId) {
   }
 }
 
+// ==========================================
 // UTILITY FUNCTIONS
+// ==========================================
 function copyLink(slug) {
   const url = `${window.location.origin}/ticket.html?slug=${slug}`;
   navigator.clipboard.writeText(url);
@@ -289,8 +307,3 @@ async function deleteEvent(eventId, eventName) {
     loadOrganizerData();
   }
 }
-
-// MODAL EVENT LISTENERS
-document.getElementById('close-guest-modal')?.addEventListener('click', () => {
-  document.getElementById('guest-modal')?.classList.add('hidden');
-});
