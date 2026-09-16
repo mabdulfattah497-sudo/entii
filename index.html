@@ -39,6 +39,7 @@
         <h1 class="text-2xl font-bold text-white">Entrii Admin Access</h1>
         <p class="text-xs text-gray-400 mt-1">Sign in to manage your events and scan gate tickets.</p>
       </div>
+
       <form id="auth-form" class="space-y-4 text-left">
         <div>
           <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Organizer Email</label>
@@ -73,16 +74,19 @@
 
   <!-- MAIN CONTENT CONTAINER -->
   <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
+
     <!-- OVERVIEW ANALYTICS -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-brand-card border border-brand-border rounded-2xl p-5 space-y-2">
         <p class="text-xs uppercase tracking-wider font-semibold text-gray-400">Total Events</p>
         <p id="stat-total-events" class="text-3xl font-black text-white">0</p>
       </div>
+
       <div class="bg-brand-card border border-brand-border rounded-2xl p-5 space-y-2">
         <p class="text-xs uppercase tracking-wider font-semibold text-gray-400">Total Issued Tickets</p>
         <p id="stat-total-guests" class="text-3xl font-black text-brand">0</p>
       </div>
+
       <div class="bg-brand-card border border-brand-border rounded-2xl p-5 space-y-2">
         <p class="text-xs uppercase tracking-wider font-semibold text-gray-400">Total Gate Check-ins</p>
         <p id="stat-total-checkedin" class="text-3xl font-black text-white">0</p>
@@ -91,6 +95,7 @@
 
     <!-- MAIN DASHBOARD GRID -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
       <!-- CREATE EVENT FORM -->
       <div class="lg:col-span-1 bg-brand-card border border-brand-border rounded-2xl p-6 space-y-6 accent-glow">
         <div class="border-b border-brand-border pb-4">
@@ -114,6 +119,7 @@
               <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Date</label>
               <input type="date" id="event-date" required class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
             </div>
+
             <div>
               <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Time</label>
               <input type="time" id="event-time" required class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
@@ -125,6 +131,7 @@
               <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Venue</label>
               <input type="text" id="event-venue" required placeholder="Eko Hotel" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
             </div>
+
             <div>
               <label class="block text-xs font-medium text-gray-300 uppercase mb-1">City</label>
               <input type="text" id="event-city" required placeholder="Lagos" class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
@@ -139,6 +146,7 @@
                 <option value="paid">Paid Event</option>
               </select>
             </div>
+
             <div>
               <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Capacity</label>
               <input type="number" id="event-capacity" min="1" value="100" required class="w-full bg-brand-surface border border-brand-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand" />
@@ -146,17 +154,18 @@
           </div>
 
           <div id="price-container" class="hidden space-y-4">
-  <div>
-    <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Ticket Price (₦)</label>
-    <input type="number" id="event-price" min="0" value="0" placeholder="5000" class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
-  </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Ticket Price (₦)</label>
+              <input type="number" id="event-price" min="0" value="0" placeholder="5000" class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
+            </div>
 
-  <div>
-    <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Paystack Subaccount Code (Optional)</label>
-    <input type="text" id="event-subaccount" placeholder="e.g. ACCT_1234567890" class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
-    <p class="text-[10px] text-gray-500 mt-1">Leave blank for free events or direct payouts.</p>
-  </div>
-</div>
+            <div>
+              <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Paystack Subaccount Code (Optional)</label>
+              <input type="text" id="event-subaccount" placeholder="e.g. ACCT_1234567890" class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
+              <p class="text-[10px] text-gray-500 mt-1">Leave blank for free events or direct payouts.</p>
+            </div>
+          </div>
+
           <button type="submit" id="create-event-btn" class="w-full bg-brand hover:bg-brand-hover text-black font-extrabold py-3 px-4 rounded-xl transition text-sm">
             Publish Event
           </button>
@@ -192,6 +201,7 @@
           </table>
         </div>
       </div>
+
     </div>
   </main>
 
@@ -224,12 +234,24 @@
       }
     });
 
-   // Login Form Submit (Instant Access Fix)
+    // Login Form Submit (Password Validation Fix)
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      localStorage.setItem('entrii_admin_session', 'active');
-      authOverlay.classList.add('hidden');
-      loadOrganizerData();
+      
+      const enteredEmail = document.getElementById('auth-email').value.trim();
+      const enteredPassword = document.getElementById('auth-password').value.trim();
+      
+      // Set your desired admin password here
+      const ADMIN_PASSWORD = "YOUR_ADMIN_PASSWORD_HERE"; 
+
+      if (enteredPassword === ADMIN_PASSWORD) {
+        localStorage.setItem('entrii_admin_session', 'active');
+        authOverlay.classList.add('hidden');
+        loadOrganizerData();
+      } else {
+        alert("Incorrect password. Access denied.");
+        document.getElementById('auth-password').value = "";
+      }
     });
 
     // Logout Action
@@ -253,77 +275,78 @@
       }
     });
 
-   async function loadOrganizerData() {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/events?select=*&order=id.desc`, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    async function loadOrganizerData() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/events?select=*&order=id.desc`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-    if (!response.ok) {
-      const err = await response.json();
-      alert("Supabase REST Error: " + (err.message || JSON.stringify(err)));
-      return;
+        if (!response.ok) {
+          const err = await response.json();
+          alert("Supabase REST Error: " + (err.message || JSON.stringify(err)));
+          return;
+        }
+
+        const events = await response.json();
+
+        const guestsResponse = await fetch(`${SUPABASE_URL}/rest/v1/guests?select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const guests = guestsResponse.ok ? await guestsResponse.json() : [];
+
+        // Update stats
+        document.getElementById('stat-total-events').textContent = events.length;
+        document.getElementById('stat-total-guests').textContent = guests.length;
+        document.getElementById('stat-total-checkedin').textContent = guests.filter(g => g.checked_in).length;
+
+        const tableBody = document.getElementById('events-table-body');
+        if (!tableBody) return;
+
+        if (!events || events.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-400">No events found.</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = '';
+        events.forEach(event => {
+          const eventGuests = guests ? guests.filter(g => g.event_id === event.id) : [];
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-brand-surface/50 transition-colors";
+
+          const isPaid = event.type === 'paid';
+          const priceBadge = isPaid 
+            ? `<span class="text-emerald-400">₦${Number(event.price).toLocaleString()}</span>` 
+            : `<span class="text-gray-400">Free</span>`;
+
+          tr.innerHTML = `
+            <td class="py-3.5 px-4 font-bold text-white">${event.name}</td>
+            <td class="py-3.5 px-4 text-gray-300">${new Date(event.date).toLocaleDateString()}</td>
+            <td class="py-3.5 px-4">${priceBadge}</td>
+            <td class="py-3.5 px-4 text-gray-300">${eventGuests.length} registered</td>
+            <td class="py-3.5 px-4 text-right space-x-2">
+              <button onclick="copyLink('ticket.html?slug=${event.slug || event.id}')" class="text-brand-accent hover:underline text-sm font-semibold">Copy Link</button>
+              <button onclick="deleteEvent('${event.id}', '${event.name}')" class="text-red-400 hover:underline text-sm font-semibold">Delete</button>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("Network error:", err);
+        alert("Network error connecting to Supabase.");
+      }
     }
 
-    const events = await response.json();
-
-    const guestsResponse = await fetch(`${SUPABASE_URL}/rest/v1/guests?select=*`, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const guests = guestsResponse.ok ? await guestsResponse.json() : [];
-
-    // Update stats
-    document.getElementById('stat-total-events').textContent = events.length;
-    document.getElementById('stat-total-guests').textContent = guests.length;
-    document.getElementById('stat-total-checkedin').textContent = guests.filter(g => g.checked_in).length;
-
-    const tableBody = document.getElementById('events-table-body');
-    if (!tableBody) return;
-
-    if (!events || events.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-400">No events found.</td></tr>`;
-      return;
-    }
-
-    tableBody.innerHTML = '';
-    events.forEach(event => {
-      const eventGuests = guests ? guests.filter(g => g.event_id === event.id) : [];
-      const tr = document.createElement('tr');
-      tr.className = "hover:bg-brand-surface/50 transition-colors";
-
-      const isPaid = event.type === 'paid';
-      const priceBadge = isPaid 
-        ? `<span class="text-emerald-400">₦${Number(event.price).toLocaleString()}</span>` 
-        : `<span class="text-gray-400">Free</span>`;
-
-      tr.innerHTML = `
-        <td class="py-3.5 px-4 font-bold text-white">${event.name}</td>
-        <td class="py-3.5 px-4 text-gray-300">${new Date(event.date).toLocaleDateString()}</td>
-        <td class="py-3.5 px-4">${priceBadge}</td>
-        <td class="py-3.5 px-4 text-gray-300">${eventGuests.length} registered</td>
-        <td class="py-3.5 px-4 text-right space-x-2">
-          <button onclick="copyLink('ticket.html?slug=${event.slug || event.id}')" class="text-brand-accent hover:underline text-sm font-semibold">Copy Link</button>
-          <button onclick="deleteEvent('${event.id}', '${event.name}')" class="text-red-400 hover:underline text-sm font-semibold">Delete</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
-    });
-
-  } catch (err) {
-    console.error("Network error:", err);
-    alert("Network error connecting to Supabase.");
-  }
-}
     // Publish Event
     createForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -331,7 +354,7 @@
       btn.disabled = true;
       btn.textContent = "Publishing...";
 
-     const dateVal = document.getElementById('event-date').value;
+      const dateVal = document.getElementById('event-date').value;
       const timeVal = document.getElementById('event-time').value;
 
       const eventPayload = {
@@ -348,6 +371,7 @@
         capacity: parseInt(document.getElementById('event-capacity').value) || 100,
         subaccount_code: document.getElementById('event-subaccount').value.trim()
       };
+
       try {
         const { error } = await supabaseClient.from('events').insert([eventPayload]);
         if (error) {
