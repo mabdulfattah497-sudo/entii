@@ -56,17 +56,6 @@
 
     <!-- TICKET CARD -->
     <div id="ticket-card" class="hidden bg-brand-card border border-brand-border rounded-3xl p-6 w-full space-y-6 accent-glow relative overflow-hidden">
-      
-      <!-- WARNING BANNER AT THE TOP -->
-      <div style="background-color: #fffbebf5; border: 1px solid #fcd34d; border-radius: 12px; padding: 12px 14px; text-align: left; display: flex; align-items: flex-start; gap: 10px; width: 100%;">
-        <span style="font-size: 18px;">⚠️</span>
-        <div>
-          <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 12px;">IMPORTANT: KEEP YOUR QR CODE SAFE</p>
-          <p style="margin: 2px 0 0 0; color: #b45309; font-size: 11px; line-height: 1.3;">
-            Please <strong>copy and keep your QR code safely</strong> until the time of your event. You will need to present this code at venue entry.
-          </p>
-        </div>
-      </div>
 
       <!-- HEADER & STATUS -->
       <div class="text-center space-y-1">
@@ -178,7 +167,6 @@
       }
 
       try {
-        // FIXED TABLE NAME FROM 'quests' TO 'guests'
         const { data: guests, error } = await supabaseClient
           .from('guests')
           .select('*, events(*)')
