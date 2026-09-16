@@ -174,31 +174,46 @@
 
       <!-- MANAGED EVENTS TABLE -->
       <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-2xl p-6 space-y-6">
-        <div class="flex justify-between items-center border-b border-brand-border pb-4">
+        
+        <!-- HEADER WITH SEARCH & REFRESH -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-brand-border pb-4 gap-4">
           <div>
             <h2 class="text-lg font-bold text-white">Your Managed Events</h2>
             <p class="text-xs text-gray-400">View real-time registrations and generate public share links.</p>
           </div>
-          <button id="refresh-events-btn" class="text-xs bg-brand-surface border border-brand-border hover:border-brand text-gray-300 px-3 py-1.5 rounded-lg transition">
-            ↻ Refresh
-            <div class="flex justify-between items-center border-b border-brand-border pb-4 flex-wrap gap-3">
-  <div>
-    <h2 class="text-lg font-bold text-white">Your Managed Events</h2>
-    <p class="text-xs text-gray-400">View real-time registrations and generate public share links.</p>
-  </div>
-  <div class="flex items-center gap-2">
-    <!-- SEARCH INPUT FIELD -->
-    <input 
-      type="text" 
-      id="search-events-input" 
-      placeholder="Search events..." 
-      class="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand"
-    />
-    <button id="refresh-events-btn" class="text-xs bg-brand-surface border border-brand-border hover:border-brand text-gray-300 px-3 py-1.5 rounded-lg transition">
-      ↻ Refresh
-    </button>
-  </div>
-</div>
+          
+          <div class="flex items-center space-x-2">
+            <input 
+              type="text" 
+              id="search-events-input" 
+              placeholder="Search events..." 
+              class="bg-brand-surface border border-brand-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand"
+            />
+            <button id="refresh-events-btn" class="text-xs bg-brand-surface border border-brand-border hover:border-brand text-gray-300 px-3 py-1.5 rounded-lg transition whitespace-nowrap">
+              ↻ Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-brand-surface text-gray-400 uppercase tracking-wider border-b border-brand-border">
+              <tr>
+                <th class="py-3 px-4">Event</th>
+                <th class="py-3 px-4">Type / Price</th>
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Capacity</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="events-table-body" class="divide-y divide-brand-border text-gray-300">
+              <tr><td colspan="5" class="py-8 text-center text-gray-500">Loading events data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
         
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
