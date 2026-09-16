@@ -2,7 +2,7 @@
 // SUPABASE CONFIGURATION
 // ==========================================
 const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY"; // Replace with your anon key if needed
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY"; // Replace with your anon key
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -11,7 +11,7 @@ let allEvents = [];
 let currentEventGuests = [];
 
 // ==========================================
-// INITIALIZATION & AUTHENTICATION
+// INITIALIZATION & EVENT LISTENERS
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
@@ -72,10 +72,7 @@ function setupEventListeners() {
     btn.disabled = true;
     btn.textContent = 'Publishing...';
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
-
     const eventData = {
-      user_id: user.id,
       name: document.getElementById('event-name').value,
       slug: document.getElementById('event-slug').value,
       date: document.getElementById('event-date').value,
@@ -114,7 +111,7 @@ function setupEventListeners() {
   // Refresh Events Button
   document.getElementById('refresh-events-btn')?.addEventListener('click', loadOrganizerData);
 
-  // Search Guests inside Guest Modal
+  // Search Guests inside Modal
   document.getElementById('search-guests-input')?.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase().trim();
     const filtered = currentEventGuests.filter(g => 
@@ -136,28 +133,37 @@ function setupEventListeners() {
 // ==========================================
 async function loadOrganizerData() {
   try {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return;
-
-    // Fetch Events with count of registered guests
+    // 1. Fetch Events safely without breaking on user_id columns
     const { data: events, error: eventsErr } = await supabaseClient
       .from('events')
-      .select('*, guests(count)')
-      .eq('user_id', user.id)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (eventsErr) throw eventsErr;
     allEvents = events || [];
 
-    // Fetch Total Dashboard Analytics
-    const { count: totalTickets } = await supabaseClient.from('guests').select('*', { count: 'exact', head: true });
-    const { count: totalCheckedIn } = await supabaseClient.from('guests').select('*', { count: 'exact', head: true }).eq('checked_in', true);
+    // 2. Fetch Guests safely for count aggregations
+    const { data: guests, error: guestsErr } = await supabaseClient
+      .from('guests')
+      .select('*');
+
+    if (guestsErr) console.warn('Guest fetch notice:', guestsErr.message);
+    const allGuests = guests || [];
+
+    // 3. Update Dashboard Overview Counters
+    const totalCheckedIn = allGuests.filter(g => g.checked_in).length;
 
     document.getElementById('stat-total-events').textContent = allEvents.length;
-    document.getElementById('stat-total-guests').textContent = totalTickets || 0;
-    document.getElementById('stat-total-checkedin').textContent = totalCheckedIn || 0;
+    document.getElementById('stat-total-guests').textContent = allGuests.length;
+    document.getElementById('stat-total-checkedin').textContent = totalCheckedIn;
 
-    renderEventsTable(allEvents);
+    // 4. Map registered counts per event and render table
+    const eventsWithCounts = allEvents.map(evt => {
+      const count = allGuests.filter(g => g.event_id === evt.id).length;
+      return { ...evt, registered_count: count };
+    });
+
+    renderEventsTable(eventsWithCounts);
   } catch (err) {
     console.error('Failed to load dashboard data:', err);
   }
@@ -174,23 +180,19 @@ function renderEventsTable(events) {
 
   tbody.innerHTML = '';
   events.forEach(event => {
-    const registeredCount = event.guests ? event.guests[0]?.count || 0 : 0;
     const priceDisplay = event.type === 'paid' ? `₦${Number(event.price).toLocaleString()}` : 'Free';
+    const regCount = event.registered_count || 0;
 
     const tr = document.createElement('tr');
     tr.className = "hover:bg-brand-surface/50 transition-colors border-b border-brand-border";
 
-    // Strictly mapped to standard headers:
-    // Column 1: Event Name
-    // Column 2: Type / Price
-    // Column 3: Date
-    // Column 4: Registered / Capacity
-    // Column 5: Action Buttons (Guests | Copy Link | Delete)
+    // Strictly ordered matching HTML Table Headers:
+    // Event | Type/Price | Date | Capacity | Actions
     tr.innerHTML = `
       <td class="py-3.5 px-4 font-bold text-white">${event.name}</td>
       <td class="py-3.5 px-4 text-gray-300">${priceDisplay}</td>
       <td class="py-3.5 px-4 text-gray-300">${event.date || 'N/A'}</td>
-      <td class="py-3.5 px-4 text-gray-300">${registeredCount} / ${event.capacity} registered</td>
+      <td class="py-3.5 px-4 text-gray-300">${regCount} / ${event.capacity} registered</td>
       <td class="py-3.5 px-4 text-right space-x-2">
         <button onclick="openGuestModal('${event.id}', '${event.name.replace(/'/g, "\\'")}')" class="text-emerald-400 hover:underline text-xs font-bold">
           Guests
