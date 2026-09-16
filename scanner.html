@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrii - Gate Scanner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#00E676',
+              hover: '#00C853',
+              dark: '#052E16',
+              surface: '#0A0F0D',
+              card: '#121A16',
+              border: '#1E2E25'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #050807; color: #E2E8F0; font-family: system-ui, sans-serif; }
+    #reader video { border-radius: 1rem; object-fit: cover; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- NAVBAR -->
+  <nav class="border-b border-brand-border bg-brand-surface/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-md mx-auto px-4 h-16 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center font-black text-black text-xl">E</div>
+        <span class="text-xl font-bold tracking-tight text-white">Entrii Gate</span>
+      </div>
+      <span class="text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full border border-brand/30 bg-brand/10 text-brand">
+        GATE CONTROL
+      </span>
+    </div>
+  </nav>
+
+  <!-- MAIN SCANNER INTERFACE -->
+  <main class="flex-grow max-w-md w-full mx-auto px-4 py-6 flex flex-col justify-center space-y-6">
+    
+    <!-- CAMERA CONTAINER -->
+    <div class="bg-brand-card border border-brand-border rounded-3xl p-4 text-center space-y-4">
+      <div class="flex items-center justify-between px-2">
+        <span class="text-xs font-mono text-gray-400">Scan Guest QR</span>
+        <span id="camera-status" class="text-[10px] font-mono text-brand bg-brand/10 px-2 py-0.5 rounded border border-brand/20">Camera Ready</span>
+      </div>
+
+      <div id="reader" class="w-full bg-brand-surface rounded-2xl overflow-hidden border border-brand-border min-h-[260px] flex items-center justify-center"></div>
+
+      <button id="toggle-camera-btn" class="w-full bg-brand-surface border border-brand-border hover:border-brand text-xs font-mono text-gray-300 py-2.5 rounded-xl transition">
+        📷 Start / Restart Camera
+      </button>
+    </div>
+
+    <!-- MANUAL PIN FALLBACK -->
+    <div class="bg-brand-card border border-brand-border rounded-3xl p-6 space-y-3">
+      <div class="text-center space-y-1">
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Manual Entry PIN</h2>
+        <p class="text-[11px] text-gray-400">If QR scan fails, type guest's live 6-digit PIN below</p>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            id="manual-pin-input" 
+            placeholder="e.g. 849201" 
+            maxlength="6" 
+            class="flex-1 bg-brand-surface border border-brand-border text-center text-lg font-mono font-bold text-brand rounded-xl px-3 py-2.5 focus:outline-none focus:border-brand tracking-widest placeholder:text-gray-600 placeholder:font-normal placeholder:tracking-normal placeholder:text-xs"
+          />
+          <button id="verify-pin-btn" class="bg-brand hover:bg-brand-hover text-black font-black px-5 rounded-xl text-xs transition">
+            Verify
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMITTED / REJECTED RESULT POPUP MODAL -->
+    <div id="result-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div id="modal-card" class="bg-brand-card border rounded-3xl p-6 w-full max-w-sm text-center space-y-5 relative shadow-2xl transition-all">
+        
+        <!-- STATUS BADGE -->
+        <span id="modal-badge" class="inline-block text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border">
+          STATUS
+        </span>
+
+        <!-- ICON CONTAINER -->
+        <div id="modal-icon" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto text-4xl font-black transition-transform scale-110">
+          ✓
+        </div>
+
+        <!-- DETAILS -->
+        <div class="space-y-1.5">
+          <h3 id="modal-title" class="text-2xl font-black tracking-tight">ADMITTED</h3>
+          <p id="modal-guest-name" class="text-lg font-bold text-white leading-snug">Guest Name</p>
+          <p id="modal-message" class="text-xs text-gray-400 leading-relaxed">Ticket Verified Successfully</p>
+        </div>
+
+        <button id="close-modal-btn" class="w-full bg-brand-surface border border-brand-border hover:border-brand text-white font-bold py-3.5 rounded-2xl transition text-xs tracking-wider uppercase font-mono">
+          Scan Next Pass
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-brand-border py-4 text-center text-[10px] font-mono text-gray-500">
+    <p>© 2026 Entrii Platform. Gate Security Verification Engine.</p>
+  </footer>
+
+  <script>
+    const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let html5QrcodeScanner = null;
+    let isProcessing = false;
+
+    function generateExpectedPin(guestId, timeBucket) {
+      let hash = 0;
+      const str = `${guestId}:${timeBucket}:ENTRII_SECRET`;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const pin = Math.abs(hash % 900000) + 100000;
+      return pin.toString();
+    }
+
+    function initScanner() {
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      const config = { fps: 10, qrbox: { width: 200, height: 200 } };
+
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess
+      ).catch(() => {
+        document.getElementById('camera-status').textContent = 'Camera Blocked/Unavailable';
+        document.getElementById('camera-status').className = 'text-[10px] font-mono text-red-400 bg-red-950/30 px-2 py-0.5 rounded border border-red-800';
+      });
+    }
+
+    async function onScanSuccess(decodedText) {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      try {
+        const parts = decodedText.split(':');
+        
+        if (parts.length < 3) {
+          showModal('rejected', 'REJECTED', 'Invalid Ticket', 'This QR code is not recognized by Entrii.');
+          return;
+        }
+
+        const [guestId, scannedBucketStr, scannedPin] = parts;
+        const scannedBucket = parseInt(scannedBucketStr, 10);
+        const currentBucket = Math.floor(Date.now() / 15000);
+
+        if (Math.abs(currentBucket - scannedBucket) > 1) {
+          showModal('rejected', 'REJECTED', 'Expired Pass', 'QR code has expired. Ask guest to refresh their page.');
+          return;
+        }
+
+        const expectedPin = generateExpectedPin(guestId, scannedBucket);
+        if (scannedPin !== expectedPin) {
+          showModal('rejected', 'REJECTED', 'Security Mismatch', 'Invalid security token signature.');
+          return;
+        }
+
+        await processCheckIn(guestId);
+
+      } catch (err) {
+        showModal('rejected', 'REJECTED', 'Scan Failure', 'Unable to parse pass details.');
+      }
+    }
+
+    async function verifyManualPin() {
+      const pinInput = document.getElementById('manual-pin-input').value.trim();
+      if (pinInput.length !== 6) {
+        alert('Please enter a 6-digit PIN');
+        return;
+      }
+
+      if (isProcessing) return;
+      isProcessing = true;
+
+      const currentBucket = Math.floor(Date.now() / 15000);
+
+      try {
+        const { data: guests, error } = await supabaseClient
+          .from('guests')
+          .select('*');
+
+        if (error || !guests) {
+          showModal('rejected', 'REJECTED', 'System Error', 'Could not reach guest database.');
+          return;
+        }
+
+        let foundGuest = null;
+
+        for (const guest of guests) {
+          const pinCurrent = generateExpectedPin(guest.id, currentBucket);
+          const pinPrev = generateExpectedPin(guest.id, currentBucket - 1);
+
+          if (pinInput === pinCurrent || pinInput === pinPrev) {
+            foundGuest = guest;
+            break;
+          }
+        }
+
+        if (!foundGuest) {
+          showModal('rejected', 'REJECTED', 'Invalid PIN', 'PIN does not match any active guest pass.');
+        } else {
+          await processCheckIn(foundGuest.id);
+        }
+
+      } catch (err) {
+        showModal('rejected', 'REJECTED', 'Error', 'Failed to verify PIN.');
+      }
+    }
+
+    async function processCheckIn(guestId) {
+      const { data: guest, error: fetchErr } = await supabaseClient
+        .from('guests')
+        .select('*, events(*)')
+        .eq('id', guestId)
+        .single();
+
+      if (fetchErr || !guest) {
+        showModal('rejected', 'REJECTED', 'Pass Not Found', 'No guest record associated with this pass.');
+        return;
+      }
+
+      const guestName = guest.full_name || guest.name || 'Guest';
+
+      if (guest.checked_in) {
+        showModal('rejected', 'REJECTED', guestName, 'ENTRY DENIED: Pass was already checked in earlier.');
+        return;
+      }
+
+      const { error: updateErr } = await supabaseClient
+        .from('guests')
+        .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+        .eq('id', guestId);
+
+      if (updateErr) {
+        showModal('rejected', 'REJECTED', guestName, 'Could not update check-in status.');
+      } else {
+        showModal('admitted', 'ADMITTED', guestName, 'Pass Verified — Welcome to the Event!');
+      }
+    }
+
+    function showModal(status, title, guestName = '', message = '') {
+      const modal = document.getElementById('result-modal');
+      const modalCard = document.getElementById('modal-card');
+      const modalBadge = document.getElementById('modal-badge');
+      const modalIcon = document.getElementById('modal-icon');
+      const modalTitle = document.getElementById('modal-title');
+      const modalGuest = document.getElementById('modal-guest-name');
+      const modalMsg = document.getElementById('modal-message');
+
+      modalGuest.textContent = guestName;
+      modalMsg.textContent = message;
+      modalTitle.textContent = title;
+
+      if (status === 'admitted') {
+        // GREEN TICK FOR ADMITTED
+        modalCard.className = "bg-[#0A1A12] border-2 border-brand rounded-3xl p-6 w-full max-w-sm text-center space-y-5 relative shadow-[0_0_50px_rgba(0,230,118,0.3)]";
+        modalBadge.className = "inline-block text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-brand/20 text-brand border border-brand/40";
+        modalBadge.textContent = "✓ PASS VALIDATED";
+        modalIcon.textContent = '✓';
+        modalIcon.className = 'w-20 h-20 rounded-full bg-brand text-black flex items-center justify-center mx-auto text-4xl font-black shadow-lg shadow-brand/40';
+        modalTitle.className = 'text-3xl font-black tracking-tight text-brand';
+      } else {
+        // RED CROSS FOR REJECTED
+        modalCard.className = "bg-[#1C0A0A] border-2 border-red-500 rounded-3xl p-6 w-full max-w-sm text-center space-y-5 relative shadow-[0_0_50px_rgba(239,68,68,0.3)]";
+        modalBadge.className = "inline-block text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40";
+        modalBadge.textContent = "✕ ACCESS DENIED";
+        modalIcon.textContent = '✕';
+        modalIcon.className = 'w-20 h-20 rounded-full bg-red-500 text-white flex items-center justify-center mx-auto text-4xl font-black shadow-lg shadow-red-500/40';
+        modalTitle.className = 'text-3xl font-black tracking-tight text-red-500';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    document.getElementById('close-modal-btn').addEventListener('click', () => {
+      document.getElementById('result-modal').classList.add('hidden');
+      document.getElementById('manual-pin-input').value = '';
+      isProcessing = false;
+    });
+
+    document.getElementById('verify-pin-btn').addEventListener('click', verifyManualPin);
+
+    document.getElementById('toggle-camera-btn').addEventListener('click', () => {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => initScanner()).catch(() => initScanner());
+      } else {
+        initScanner();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', initScanner);
+  </script>
+</body>
+</html>

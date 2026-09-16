@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrii - My Pass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- QRCode.js Library for Client-Side Dynamic QR Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#00E676',
+              hover: '#00C853',
+              dark: '#052E16',
+              surface: '#0A0F0D',
+              card: '#121A16',
+              border: '#1E2E25'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #050807; color: #E2E8F0; font-family: system-ui, sans-serif; }
+    .accent-glow { box-shadow: 0 0 35px -5px rgba(0, 230, 118, 0.25); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- NAVIGATION BAR -->
+  <nav class="border-b border-brand-border bg-brand-surface/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-md mx-auto px-4 h-16 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center font-black text-black text-xl">E</div>
+        <span class="text-xl font-bold tracking-tight text-white">Entrii</span>
+      </div>
+      <span class="text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full border border-brand/30 bg-brand/10 text-brand">
+        OFFICIAL TICKET
+      </span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-md w-full mx-auto px-4 py-6 flex items-center justify-center">
+    
+    <!-- LOADING CARD -->
+    <div id="loading-card" class="bg-brand-card border border-brand-border rounded-2xl p-8 w-full text-center space-y-4">
+      <div class="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-sm text-gray-400">Loading your access pass...</p>
+    </div>
+
+    <!-- TICKET CARD -->
+    <div id="ticket-card" class="hidden bg-brand-card border border-brand-border rounded-3xl p-6 w-full space-y-6 accent-glow relative overflow-hidden">
+      
+      <!-- HEADER & STATUS -->
+      <div class="text-center space-y-1">
+        <span id="checkin-status" class="inline-block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-brand/20 text-brand border border-brand/30 mb-2">
+          VALID PASS
+        </span>
+        <h1 id="guest-name" class="text-2xl font-black text-white leading-snug">Guest Name</h1>
+        <p id="event-name" class="text-sm text-gray-400 font-medium">Event Name</p>
+      </div>
+
+      <!-- TIME-LOCKED QR CODE CONTAINER -->
+      <div class="bg-brand-surface border border-brand-border rounded-2xl p-6 text-center flex flex-col items-center justify-center min-h-[260px] relative">
+        
+        <!-- LOCKED STATE VIEW WITH COUNTDOWN -->
+        <div id="qr-locked-view" class="space-y-4 p-2 w-full">
+          <div class="w-12 h-12 rounded-2xl bg-brand-border/50 border border-brand-border flex items-center justify-center mx-auto text-xl">
+            🔒
+          </div>
+          
+          <div class="space-y-2">
+            <p class="text-[11px] font-bold uppercase tracking-widest text-brand">QR Code Unlocks In</p>
+            <div id="countdown-timer" class="font-mono text-xl font-black text-white tracking-wider bg-brand-card py-2.5 px-4 rounded-xl border border-brand-border inline-block">
+              00d 00h 00m 00s
+            </div>
+          </div>
+
+          <p class="text-[11px] text-gray-400 max-w-xs mx-auto leading-relaxed">
+            Anti-fraud security active. Dynamic QR Code and Entry PIN unlock at event start time:<br/>
+            <span id="unlock-time-display" class="font-mono text-white font-semibold">TBA</span>
+          </p>
+        </div>
+
+        <!-- UNLOCKED REFRESHING QR CODE VIEW -->
+        <div id="qr-unlocked-view" class="hidden flex-col items-center space-y-3 w-full">
+          <div id="qrcode-canvas" class="bg-white p-3 rounded-xl border-4 border-brand"></div>
+          
+          <!-- 15-SECOND REFRESH INDICATOR -->
+          <div class="space-y-1 text-center w-full max-w-[200px]">
+            <div class="flex items-center justify-between text-[10px] font-mono text-brand">
+              <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-brand animate-ping"></span> Live Security</span>
+              <span id="refresh-timer-text">15s</span>
+            </div>
+            <div class="w-full bg-brand-border h-1 rounded-full overflow-hidden">
+              <div id="refresh-progress-bar" class="bg-brand h-full w-full transition-all duration-1000 ease-linear"></div>
+            </div>
+            <p class="text-[10px] font-mono text-gray-400 pt-1">QR code & PIN refresh every 15s</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ENTRY DETAILS -->
+      <div class="grid grid-cols-2 gap-3 text-xs font-mono bg-brand-surface border border-brand-border p-4 rounded-xl">
+        <div>
+          <span class="text-gray-500 uppercase block text-[9px]">Entry PIN</span>
+          <span id="ticket-pin" class="text-brand font-bold text-sm tracking-wider">••••••</span>
+        </div>
+        <div>
+          <span class="text-gray-500 uppercase block text-[9px]">Date & Time</span>
+          <span id="event-datetime" class="text-white font-bold text-xs">TBA</span>
+        </div>
+        <div class="col-span-2 pt-1 border-t border-brand-border/50">
+          <span class="text-gray-500 uppercase block text-[9px]">Venue</span>
+          <span id="event-venue" class="text-white font-bold text-xs">TBA</span>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="space-y-2.5 pt-2">
+        <button id="whatsapp-btn" class="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black font-black py-3 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2">
+          <span>📱</span>
+          <span>Send Ticket Link to WhatsApp</span>
+        </button>
+
+        <button id="copy-btn" class="w-full bg-brand-surface border border-brand-border hover:border-brand text-gray-300 font-bold py-3 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2">
+          <span>📋</span>
+          <span id="copy-text">Copy Ticket Link</span>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="border-t border-brand-border py-4 text-center text-[10px] font-mono text-gray-500">
+    <p>© 2026 Entrii Platform. Dynamic PIN Anti-Fraud Infrastructure.</p>
+  </footer>
+
+  <script>
+    const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let ticketData = null;
+    let refreshInterval = null;
+    let countdownInterval = null;
+    let qrGeneratorInstance = null;
+
+    async function loadTicket() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const guestId = urlParams.get('id');
+
+      if (!guestId) {
+        document.getElementById('loading-card').innerHTML = `
+          <p class="text-red-400 font-bold">Invalid Ticket Link</p>
+          <p class="text-xs text-gray-500">No ticket identifier provided in link.</p>
+        `;
+        return;
+      }
+
+      try {
+        const { data: guests, error } = await supabaseClient
+          .from('guests')
+          .select('*, events(*)')
+          .eq('id', guestId)
+          .limit(1);
+
+        if (error || !guests || guests.length === 0) {
+          document.getElementById('loading-card').innerHTML = `
+            <p class="text-red-400 font-bold">Ticket Not Found</p>
+            <p class="text-xs text-gray-500">This pass does not exist or was cancelled.</p>
+          `;
+          return;
+        }
+
+        ticketData = guests[0];
+        const event = ticketData.events;
+
+        document.getElementById('guest-name').textContent = ticketData.full_name || ticketData.name;
+        document.getElementById('event-name').textContent = event.name;
+
+        const dateStr = event.date || event.event_date || 'TBA';
+        const timeStr = event.time || event.event_time || '00:00';
+        document.getElementById('event-datetime').textContent = `${dateStr} @ ${timeStr}`;
+        document.getElementById('unlock-time-display').textContent = `${dateStr} at ${timeStr}`;
+        document.getElementById('event-venue').textContent = `${event.venue || 'TBA'}, ${event.city || 'Lagos'}`;
+
+        if (ticketData.checked_in) {
+          const statusBadge = document.getElementById('checkin-status');
+          statusBadge.textContent = 'CHECKED IN';
+          statusBadge.className = 'inline-block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700 mb-2';
+        }
+
+        initTimeLock(event, guestId);
+        setupActionButtons();
+
+        document.getElementById('loading-card').classList.add('hidden');
+        document.getElementById('ticket-card').classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Ticket fetch error:', err);
+      }
+    }
+
+    function initTimeLock(event, guestId) {
+      const dateStr = event.date || event.event_date;
+      const timeStr = event.time || event.event_time || '00:00';
+
+      if (!dateStr) {
+        unlockTicket(guestId);
+        return;
+      }
+
+      const eventStartTime = new Date(`${dateStr}T${timeStr}`);
+
+      function updateTimer() {
+        const now = new Date();
+        const diff = eventStartTime - now;
+
+        if (diff <= 0) {
+          clearInterval(countdownInterval);
+          unlockTicket(guestId);
+        } else {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          const minutes = Math.floor((diff / 1000 / 60) % 60);
+          const seconds = Math.floor((diff / 1000) % 60);
+
+          document.getElementById('countdown-timer').textContent = 
+            `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+          
+          document.getElementById('ticket-pin').textContent = '••••••';
+        }
+      }
+
+      updateTimer();
+      countdownInterval = setInterval(updateTimer, 1000);
+    }
+
+    function unlockTicket(guestId) {
+      document.getElementById('qr-locked-view').classList.add('hidden');
+      const unlockedView = document.getElementById('qr-unlocked-view');
+      unlockedView.classList.remove('hidden');
+      unlockedView.classList.add('flex');
+
+      startDynamicSecurityEngine(guestId);
+    }
+
+    // Dynamic 15-Second Refresh Engine for QR & Random PIN
+    function startDynamicSecurityEngine(guestId) {
+      const canvasContainer = document.getElementById('qrcode-canvas');
+      canvasContainer.innerHTML = '';
+
+      qrGeneratorInstance = new QRCode(canvasContainer, {
+        width: 160,
+        height: 160,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // Pseudo-random deterministic function to produce unpredictable 6-digit PINs
+      function generateDynamicPin(guestId, timeBucket) {
+        let hash = 0;
+        const str = `${guestId}:${timeBucket}:ENTRII_SECRET`;
+        for (let i = 0; i < str.length; i++) {
+          hash = (hash << 5) - hash + str.charCodeAt(i);
+          hash |= 0;
+        }
+        const pin = Math.abs(hash % 900000) + 100000;
+        return pin.toString();
+      }
+
+      function updateSecurityPayload() {
+        const timeBucket = Math.floor(Date.now() / 15000); // 15-sec bucket
+        const dynamicPin = generateDynamicPin(guestId, timeBucket);
+        const dynamicToken = `${guestId}:${timeBucket}:${dynamicPin}`;
+
+        // Update QR Code
+        qrGeneratorInstance.makeCode(dynamicToken);
+
+        // Update Displayed PIN
+        document.getElementById('ticket-pin').textContent = dynamicPin;
+      }
+
+      function tick() {
+        const currentSecondInBucket = Math.floor((Date.now() / 1000) % 15);
+        const secondsLeft = 15 - currentSecondInBucket;
+
+        document.getElementById('refresh-timer-text').textContent = `${secondsLeft}s`;
+        const percentage = (secondsLeft / 15) * 100;
+        document.getElementById('refresh-progress-bar').style.width = `${percentage}%`;
+
+        if (secondsLeft === 15 || secondsLeft === 0) {
+          updateSecurityPayload();
+        }
+      }
+
+      updateSecurityPayload();
+      tick();
+      refreshInterval = setInterval(tick, 1000);
+    }
+
+    function setupActionButtons() {
+      const ticketUrl = window.location.href;
+
+      document.getElementById('whatsapp-btn').addEventListener('click', () => {
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(ticketUrl)}`;
+        window.open(waUrl, '_blank');
+      });
+
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(ticketUrl);
+          const copyText = document.getElementById('copy-text');
+          copyText.textContent = 'Link Copied!';
+          setTimeout(() => { copyText.textContent = 'Copy Ticket Link'; }, 2000);
+        } catch (err) {
+          alert('Copy failed. Please copy the browser URL manually.');
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', loadTicket);
+  </script>
+</body>
+</html>

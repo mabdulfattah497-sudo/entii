@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrii - Secure Ticket Access</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Paystack Inline JS Library -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#00E676',
+              hover: '#00C853',
+              dark: '#052E16',
+              surface: '#0A0F0D',
+              card: '#121A16',
+              border: '#1E2E25'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #050807; color: #E2E8F0; font-family: system-ui, sans-serif; }
+    .accent-glow { box-shadow: 0 0 35px -5px rgba(0, 230, 118, 0.2); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+  <!-- NAVIGATION BAR -->
+  <nav class="border-b border-brand-border bg-brand-surface/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-3xl mx-auto px-4 h-16 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center font-black text-black text-xl">E</div>
+        <span class="text-xl font-bold tracking-tight text-white">Entrii</span>
+      </div>
+      <span class="text-xs font-semibold px-3 py-1 rounded-full border border-brand/30 bg-brand/10 text-brand">
+        SECURE CHECKOUT
+      </span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-xl w-full mx-auto px-4 py-8 flex items-center justify-center">
+    
+    <!-- EVENT LOADING CARD -->
+    <div id="loading-card" class="bg-brand-card border border-brand-border rounded-2xl p-8 w-full text-center space-y-4">
+      <div class="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-sm text-gray-400">Fetching event details...</p>
+    </div>
+
+    <!-- MAIN REGISTRATION CARD -->
+    <div id="event-card" class="hidden bg-brand-card border border-brand-border rounded-2xl p-6 sm:p-8 w-full space-y-6 accent-glow">
+      
+      <!-- EVENT HEADER -->
+      <div class="border-b border-brand-border pb-5 space-y-2">
+        <span id="badge-type" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-brand/20 text-brand border border-brand/30">
+          EVENT
+        </span>
+        <h1 id="event-title" class="text-2xl sm:text-3xl font-black text-white leading-tight">Event Title</h1>
+        
+        <div class="grid grid-cols-2 gap-2 text-xs text-gray-400 pt-2 font-mono">
+          <div>📅 <span id="event-date">TBA</span></div>
+          <div>⏰ <span id="event-time">TBA</span></div>
+          <div>📍 <span id="event-venue">Venue</span></div>
+          <div>🌆 <span id="event-city">City</span></div>
+        </div>
+      </div>
+
+      <!-- PRICE SUMMARY -->
+      <div class="bg-brand-surface border border-brand-border rounded-xl p-4 flex justify-between items-center">
+        <span class="text-xs uppercase font-semibold text-gray-400 tracking-wider">Ticket Price</span>
+        <span id="event-price-display" class="text-xl font-black text-white">₦0</span>
+      </div>
+
+      <!-- REGISTRATION FORM -->
+      <form id="registration-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Full Name</label>
+          <input type="text" id="guest-name" required placeholder="e.g. John Doe" 
+            class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-300 uppercase tracking-wider mb-1">Email Address</label>
+          <input type="email" id="guest-email" required placeholder="john@example.com" 
+            class="w-full bg-brand-surface border border-brand-border rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-brand transition" />
+        </div>
+
+        <button type="submit" id="submit-btn" class="w-full bg-brand hover:bg-brand-hover text-black font-black py-3.5 px-4 rounded-xl transition text-base shadow-lg shadow-brand/10">
+          Get Access Ticket
+        </button>
+      </form>
+
+    </div>
+  </main>
+
+  <footer class="border-t border-brand-border py-6 text-center text-xs text-gray-500">
+    <p>© 2026 Entrii Platform. Automated Ticket Settlement & Anti-Fraud Infrastructure.</p>
+  </footer>
+
+  <script>
+    const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
+    const PAYSTACK_PUBLIC_KEY = "pk_test_c4ab8e0c30ffd1f2cb8b32843d9abaed9446c597"; // Insert your Paystack Public Key here
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let activeEvent = null;
+
+    // Load Event Details from URL Slug (?slug=your-event-slug)
+    async function loadEvent() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slug = urlParams.get('slug');
+
+      if (!slug) {
+        document.getElementById('loading-card').innerHTML = `
+          <p class="text-red-400 font-bold">Invalid Event Link</p>
+          <p class="text-xs text-gray-500 font-mono">No event slug provided in URL parameters.</p>
+        `;
+        return;
+      }
+
+      try {
+        const { data: events, error } = await supabaseClient
+          .from('events')
+          .select('*')
+          .eq('slug', slug)
+          .limit(1);
+
+        if (error || !events || events.length === 0) {
+          document.getElementById('loading-card').innerHTML = `
+            <p class="text-red-400 font-bold">Event Not Found</p>
+            <p class="text-xs text-gray-500 font-mono">The requested event does not exist or has ended.</p>
+          `;
+          return;
+        }
+
+        activeEvent = events[0];
+
+        // Populate DOM elements
+        document.getElementById('event-title').textContent = activeEvent.name;
+        document.getElementById('event-date').textContent = activeEvent.date || activeEvent.event_date || 'TBA';
+        document.getElementById('event-time').textContent = activeEvent.time || activeEvent.event_time || 'TBA';
+        document.getElementById('event-venue').textContent = activeEvent.venue || 'TBA';
+        document.getElementById('event-city').textContent = activeEvent.city || 'Lagos';
+
+        const isPaid = activeEvent.type === 'paid';
+        const price = Number(activeEvent.price || 0);
+
+        document.getElementById('badge-type').textContent = isPaid ? 'PAID ACCESS' : 'FREE ENTRY';
+        document.getElementById('event-price-display').textContent = isPaid ? `₦${price.toLocaleString()}` : 'FREE';
+        document.getElementById('submit-btn').textContent = isPaid ? `Pay ₦${price.toLocaleString()} & Get Ticket` : 'Get Free Pass';
+
+        document.getElementById('loading-card').classList.add('hidden');
+        document.getElementById('event-card').classList.remove('hidden');
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+
+    // Form Submission Handler
+    document.getElementById('registration-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('guest-name').value.trim();
+      const email = document.getElementById('guest-email').value.trim();
+      const btn = document.getElementById('submit-btn');
+
+      if (!activeEvent) return;
+
+      const isPaid = activeEvent.type === 'paid';
+      const price = Number(activeEvent.price || 0);
+
+      btn.disabled = true;
+
+      if (isPaid && price > 0) {
+        // Trigger Split-Payment Paystack Popup
+        payWithPaystackSubaccount(email, name, price, activeEvent);
+      } else {
+        // Free Ticket Issuance
+        btn.textContent = "Generating Pass...";
+        await issueTicket(email, name, activeEvent.id, "FREE_PASS");
+      }
+    });
+
+    // Paystack Subaccount Split Payment Handler
+    function payWithPaystackSubaccount(email, name, amountNaira, eventObj) {
+      const paystackConfig = {
+        key: PAYSTACK_PUBLIC_KEY,
+        email: email,
+        amount: amountNaira * 100, // Converts Naira to Kobo
+        currency: 'NGN',
+        metadata: {
+          custom_fields: [
+            { display_name: "Guest Name", variable_name: "guest_name", value: name },
+            { display_name: "Event Title", variable_name: "event_title", value: eventObj.name }
+          ]
+        },
+        callback: function(response) {
+          issueTicket(email, name, eventObj.id, response.reference);
+        },
+        onClose: function() {
+          alert('Payment cancelled.');
+          const btn = document.getElementById('submit-btn');
+          btn.disabled = false;
+        }
+      };
+
+      // Split payout automatically if subaccount code exists
+      if (eventObj.subaccount_code && eventObj.subaccount_code.trim() !== "") {
+        paystackConfig.subaccount = eventObj.subaccount_code.trim();
+        paystackConfig.bearer = 'subaccount'; 
+      }
+
+      const handler = PaystackPop.setup(paystackConfig);
+      handler.openIframe();
+    }
+
+    // Insert Ticket Record into Supabase Guests Table (Includes All Corrected Schema Fields)
+    async function issueTicket(email, name, eventId, reference) {
+      const ticketPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const generatedPassId = 'PASS-' + Math.floor(100000 + Math.random() * 900000);
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('guests')
+          .insert([{
+            event_id: eventId,
+            name: name,
+            full_name: name,         // Satisfies full_name constraint
+            email: email,
+            phone: 'N/A',            // Satisfies phone constraint
+            pass_id: generatedPassId,// Satisfies pass_id constraint
+            paystack_ref: reference, // Handles free vs paid payment reference
+            ticket_pin: ticketPin,   // 6-digit entry PIN
+            checked_in: false        // Gate check-in flag
+          }])
+          .select();
+
+        if (error) {
+          alert('Failed to generate ticket: ' + error.message);
+          document.getElementById('submit-btn').disabled = false;
+          return;
+        }
+
+        // Redirect Guest to their Dynamic QR Ticket Page
+        const guestId = data[0].id;
+        window.location.href = `my-ticket?id=${guestId}`;
+
+      } catch (err) {
+        console.error('Insert Error:', err);
+        alert('An unexpected error occurred while issuing your ticket.');
+        document.getElementById('submit-btn').disabled = false;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadEvent);
+  </script>
+</body>
+</html>
