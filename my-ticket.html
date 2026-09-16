@@ -87,9 +87,13 @@
             Anti-fraud security active. Dynamic QR Code and Entry PIN unlock at event start time:<br/>
             <span id="unlock-time-display" class="font-mono text-white font-semibold">TBA</span>
           </p>
+        </div>
 
-          <!-- WARNING BANNER INERTED HERE -->
-          <div style="background-color: #fffbebf5; border: 1px solid #fcd34d; border-radius: 8px; padding: 14px 16px; margin: 16px 0; text-align: left; display: flex; align-items: flex-start; gap: 12px;">
+        <!-- UNLOCKED REFRESHING QR CODE VIEW -->
+        <div id="qr-unlocked-view" class="hidden flex-col items-center space-y-3 w-full">
+          
+          <!-- WARNING BANNER PLACED HERE -->
+          <div style="background-color: #fffbebf5; border: 1px solid #fcd34d; border-radius: 8px; padding: 14px 16px; width: 100%; text-align: left; display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box;">
             <span style="font-size: 20px;">⚠️</span>
             <div>
               <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 14px;">IMPORTANT: KEEP YOUR QR CODE SAFE</p>
@@ -98,10 +102,7 @@
               </p>
             </div>
           </div>
-        </div>
 
-        <!-- UNLOCKED REFRESHING QR CODE VIEW -->
-        <div id="qr-unlocked-view" class="hidden flex-col items-center space-y-3 w-full">
           <div id="qrcode-canvas" class="bg-white p-3 rounded-xl border-4 border-brand"></div>
           
           <!-- 15-SECOND REFRESH INDICATOR -->
