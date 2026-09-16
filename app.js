@@ -55,15 +55,23 @@ function setupEventListeners() {
     window.location.reload();
   });
 
-  // Toggle Price Input Based on Event Type
-  document.getElementById('event-type')?.addEventListener('change', (e) => {
-    const priceContainer = document.getElementById('price-container');
-    if (e.target.value === 'paid') {
-      priceContainer?.classList.remove('hidden');
-    } else {
-      priceContainer?.classList.add('hidden');
-    }
-  });
+  // NEW CODE
+document.getElementById('event-type')?.addEventListener('change', (e) => {
+  const priceContainer = document.getElementById('price-container');
+  // Find the container holding your capacity input (or the input field itself)
+  const capacityInput = document.getElementById('event-capacity');
+  const capacityContainer = capacityInput?.closest('div'); 
+
+  if (e.target.value === 'paid') {
+    priceContainer?.classList.remove('hidden');
+    capacityContainer?.classList.add('hidden'); // Hides capacity for paid events
+    if (capacityInput) capacityInput.value = '999999'; // Default high/unlimited capacity
+  } else {
+    priceContainer?.classList.add('hidden');
+    capacityContainer?.classList.remove('hidden'); // Shows capacity for free events
+    if (capacityInput) capacityInput.value = '100'; // Default free limit
+  }
+});
 
   // Create Event Form Submission
   document.getElementById('create-event-form')?.addEventListener('submit', async (e) => {
