@@ -6,6 +6,7 @@
   <title>Entrii - My Pass</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- QRCode.js Library for Client-Side Dynamic QR Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     tailwind.config = {
@@ -56,7 +57,7 @@
 
     <!-- TICKET CARD -->
     <div id="ticket-card" class="hidden bg-brand-card border border-brand-border rounded-3xl p-6 w-full space-y-6 accent-glow relative overflow-hidden">
-
+      
       <!-- HEADER & STATUS -->
       <div class="text-center space-y-1">
         <span id="checkin-status" class="inline-block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-brand/20 text-brand border border-brand/30 mb-2">
@@ -145,7 +146,7 @@
 
   <script>
     const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
-    const SUPABASE_ANON_KEY ="sb_publishable_YBqWtVxPaOPZh2mt8HeHMw__42x31Cb";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -209,7 +210,6 @@
         console.error('Ticket fetch error:', err);
       }
     }
-
     function initTimeLock(event, guestId) {
       const dateStr = event.date || event.event_date;
       const timeStr = event.time || event.event_time || '00:00';
@@ -254,6 +254,7 @@
       startDynamicSecurityEngine(guestId);
     }
 
+    // Dynamic 15-Second Refresh Engine for QR & Random PIN
     function startDynamicSecurityEngine(guestId) {
       const canvasContainer = document.getElementById('qrcode-canvas');
       canvasContainer.innerHTML = '';
@@ -266,6 +267,7 @@
         correctLevel: QRCode.CorrectLevel.H
       });
 
+      // Pseudo-random deterministic function to produce unpredictable 6-digit PINs
       function generateDynamicPin(guestId, timeBucket) {
         let hash = 0;
         const str = `${guestId}:${timeBucket}:ENTRII_SECRET`;
@@ -278,11 +280,14 @@
       }
 
       function updateSecurityPayload() {
-        const timeBucket = Math.floor(Date.now() / 15000);
+        const timeBucket = Math.floor(Date.now() / 15000); // 15-sec bucket
         const dynamicPin = generateDynamicPin(guestId, timeBucket);
         const dynamicToken = `${guestId}:${timeBucket}:${dynamicPin}`;
 
+        // Update QR Code
         qrGeneratorInstance.makeCode(dynamicToken);
+
+        // Update Displayed PIN
         document.getElementById('ticket-pin').textContent = dynamicPin;
       }
 
