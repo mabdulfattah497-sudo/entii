@@ -229,5 +229,47 @@
 
   <!-- External JavaScript File -->
   <script src="app.js"></script>
+  <!-- GUEST LIST & MANUAL CHECK-IN MODAL -->
+<div id="guest-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+  <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-3xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+    
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center border-b border-brand-border pb-3">
+      <div>
+        <h3 id="modal-event-title" class="text-lg font-bold text-white">Event Guests</h3>
+        <p class="text-xs text-gray-400">Search attendees and process manual door check-ins.</p>
+      </div>
+      <button id="close-guest-modal" class="text-gray-400 hover:text-white text-xl font-bold px-2">&times;</button>
+    </div>
+
+    <!-- Guest Search Bar -->
+    <div class="flex items-center gap-2">
+      <input 
+        type="text" 
+        id="search-guests-input" 
+        placeholder="Search guest by name or email..." 
+        class="w-full bg-brand-surface border border-brand-border rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand"
+      />
+    </div>
+
+    <!-- Guest Table -->
+    <div class="overflow-y-auto flex-1 border border-brand-border rounded-lg">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-brand-surface text-gray-400 uppercase border-b border-brand-border sticky top-0">
+          <tr>
+            <th class="py-2.5 px-3">Name</th>
+            <th class="py-2.5 px-3">Email</th>
+            <th class="py-2.5 px-3">Status</th>
+            <th class="py-2.5 px-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="guests-modal-body" class="divide-y divide-brand-border text-gray-300">
+          <tr><td colspan="4" class="py-6 text-center text-gray-500">Select an event to load guests.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
 </body>
 </html>
