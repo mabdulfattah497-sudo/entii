@@ -91,6 +91,18 @@
 
         <!-- UNLOCKED REFRESHING QR CODE VIEW -->
         <div id="qr-unlocked-view" class="hidden flex-col items-center space-y-3 w-full">
+          
+          <!-- WARNING BANNER (SHOWS WHEN UNLOCKED) -->
+          <div style="background-color: #fffbebf5; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; text-align: left; display: flex; align-items: flex-start; gap: 10px; width: 100%;">
+            <span style="font-size: 18px;">⚠️</span>
+            <div>
+              <p style="margin: 0; font-weight: 700; color: #92400e; font-size: 12px;">IMPORTANT: KEEP YOUR QR CODE SAFE</p>
+              <p style="margin: 2px 0 0 0; color: #b45309; font-size: 11px; line-height: 1.3;">
+                Please <strong>copy and keep your QR code safely</strong> until the time of your event. You will need to present this code at venue entry.
+              </p>
+            </div>
+          </div>
+
           <div id="qrcode-canvas" class="bg-white p-3 rounded-xl border-4 border-brand"></div>
           
           <!-- 15-SECOND REFRESH INDICATOR -->
@@ -146,7 +158,7 @@
 
   <script>
     const SUPABASE_URL = "https://cwshmvrsucmklspqghll.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3c2htdnJzdWNta2xzcHFnaGxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMjE3MTUsImV4cCI6MjEwMzg5NzcxNX0.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzIiwicmVmIjoiY3dzaG12cnN1Y21rbHNwcWdobGwiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4ODMyMTcxNSwiZXhwIjoyMTAzODk3NzE1fQ.gwE37PnjKXM49ck8lrGKvWmTMm3tvd5F3AYMAvv08SY";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
